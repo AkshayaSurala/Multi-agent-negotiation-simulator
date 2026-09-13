@@ -236,8 +236,12 @@ function extractPriceFromText(text) {
 
   /* -------------------------------------------------------
      LAKHS
-     Example: ₹71.18 lakhs
-     71.18 × 100000 = ₹71,18,000
+     Examples:
+       ₹179.10 lakhs
+       ₹90 lakh
+       COUNTEROFFER: ₹192.37 lakhs
+
+     Convert lakhs to full rupees.
   ------------------------------------------------------- */
 
   const lakhMatch = value.match(
@@ -247,18 +251,20 @@ function extractPriceFromText(text) {
   if (lakhMatch) {
 
     const number = Number(
-      lakhMatch[1].replace(/,/g, "")
+      lakhMatch[1].replace(/,/g, '')
     );
 
     if (Number.isFinite(number)) {
       return number * 100000;
     }
+
   }
 
   /* -------------------------------------------------------
      CRORES
-     Example: ₹2 crore
-     2 × 10000000 = ₹2,00,00,000
+     Examples:
+       ₹1.25 crore
+       ₹2 crores
   ------------------------------------------------------- */
 
   const croreMatch = value.match(
@@ -268,20 +274,21 @@ function extractPriceFromText(text) {
   if (croreMatch) {
 
     const number = Number(
-      croreMatch[1].replace(/,/g, "")
+      croreMatch[1].replace(/,/g, '')
     );
 
     if (Number.isFinite(number)) {
       return number * 10000000;
     }
+
   }
 
   /* -------------------------------------------------------
-     DIRECT RUPEE VALUE
+     DIRECT RUPEE VALUES
      Examples:
-       ₹71,18,000
-       Buyer Offer: ₹71,18,000
-       COUNTEROFFER: ₹71,18,000
+       Buyer Offer: ₹1,79,10,000
+       COUNTEROFFER: ₹1,92,37,000
+       ₹5000000
   ------------------------------------------------------- */
 
   const patterns = [
@@ -301,17 +308,21 @@ function extractPriceFromText(text) {
     if (match) {
 
       const number = Number(
-        String(match[1]).replace(/,/g, "")
+        String(match[1]).replace(/,/g, '')
       );
 
       if (Number.isFinite(number)) {
         return number;
       }
+
     }
+
   }
 
   return null;
+
 }
+
 
 /* =========================================================
    NORMALIZE AI-VS-AI HISTORY
@@ -989,9 +1000,8 @@ function App() {
         data.agreed_price,
 
       stagnant_round_count:
-        data.stalled_rounds ??
-        data.current_state?.stalled_rounds ??
-        data.current_state?.stagnant_round_count ??
+        data.current_state
+          ?.stagnant_round_count ??
         0,
 
       deadlock_reason:
@@ -3100,10 +3110,249 @@ function App() {
 
       </main>
 
+      {session && status !== "active" && (
+        <OutcomeScreen session={session} />
+      )}
+
     </div>
 
   );
 
+}
+
+
+
+/* =========================================================
+   MILESTONE 4 - PART 1
+   NEGOTIATION OUTCOME SCREEN
+========================================================= */
+
+function formatOutcomeMoney(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(number);
+}
+
+function buildOutcomeTimeline(history = []) {
+  const rounds = {};
+  history.forEach((item) => {
+    if (!item) return;
+    const round = Number(item.round);
+    if (!Number.isFinite(round) || round <= 0) return;
+    if (!rounds[round]) {
+      rounds[round] = { round, buyerOffer: null, sellerOffer: null };
+    }
+    const sender = String(item.sender || item.agent || "").toLowerCase();
+    const offer = Number(item.offer);
+    if (!Number.isFinite(offer)) return;
+    if (sender.includes("buyer")) {
+      rounds[round].buyerOffer = offer;
+    } else if (sender.includes("seller")) {
+      rounds[round].sellerOffer = offer;
+    }
+  });
+  return Object.values(rounds).sort((a, b) => a.round - b.round);
+}
+
+function getOutcomeScore(session, side) {
+  if (!session) return null;
+  if (side === "buyer") {
+    return session.buyer_objective_satisfaction ??
+      session.buyer_satisfaction ??
+      session.objective_satisfaction?.buyer ??
+      null;
+  }
+  return session.seller_objective_satisfaction ??
+    session.seller_satisfaction ??
+    session.objective_satisfaction?.seller ??
+    null;
+}
+
+function OutcomeScreen({ session }) {
+  if (!session) return null;
+
+  const rawStatus = String(session.status || "completed");
+  const status = rawStatus.toLowerCase();
+  const statusLabel = rawStatus.replace(/_/g, " ").toUpperCase();
+
+  const timeline = buildOutcomeTimeline(session.history || []);
+  const maxRounds = Number(session.max_rounds);
+  const currentRound = Number(session.round);
+  const roundsElapsed = Number.isFinite(currentRound) && currentRound > 0
+    ? currentRound
+    : timeline.length;
+
+  const property = session.property || {};
+  const propertyName = property["Property Title"] ||
+    property.Name ||
+    property.name ||
+    session.property_name ||
+    "Selected Property";
+
+  const scenarioName = session.scenario_name || session.scenario || "Real Estate Negotiation";
+  const agreedPrice = session.agreed_price ?? null;
+  const buyerScore = getOutcomeScore(session, "buyer");
+  const sellerScore = getOutcomeScore(session, "seller");
+  const mode = session.mode === "ai_ai" ? "AI vs AI" : "Human vs AI";
+
+  const finalBuyerOffer = timeline.length
+    ? timeline[timeline.length - 1].buyerOffer
+    : null;
+  const finalSellerOffer = timeline.length
+    ? timeline[timeline.length - 1].sellerOffer
+    : null;
+
+  return (
+    <section className="outcome-screen panel">
+      <div className="outcome-header">
+        <div className="outcome-title-area">
+          <div className="outcome-trophy">✓</div>
+          <div>
+            <div className="outcome-eyebrow">NEGOTIATION OUTCOME</div>
+            <h2>Negotiation Completed</h2>
+            <p>Final result and negotiation summary</p>
+          </div>
+        </div>
+        <div className={`outcome-final-status ${status}`}>
+          ● {statusLabel}
+        </div>
+      </div>
+
+      <div className="outcome-panel">
+        <div className="outcome-panel-heading">
+          <span className="outcome-heading-icon">₹</span>
+          <div>
+            <h3>Final Agreement Terms</h3>
+            <p>Key details from the completed negotiation</p>
+          </div>
+        </div>
+
+        <div className="agreement-grid">
+          <div className="agreement-item">
+            <span>AGREED PRICE</span>
+            <strong>{formatOutcomeMoney(agreedPrice)}</strong>
+          </div>
+          <div className="agreement-item">
+            <span>PROPERTY</span>
+            <strong>{propertyName}</strong>
+          </div>
+          <div className="agreement-item">
+            <span>SCENARIO</span>
+            <strong>{scenarioName}</strong>
+          </div>
+          <div className="agreement-item">
+            <span>ROUNDS ELAPSED</span>
+            <strong>
+              {roundsElapsed}
+              {Number.isFinite(maxRounds) && maxRounds > 0 ? ` / ${maxRounds}` : ""}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="outcome-panel">
+        <div className="outcome-panel-heading">
+          <span className="outcome-heading-icon">↗</span>
+          <div>
+            <h3>Concession Timeline</h3>
+            <p>How buyer and seller offers changed across rounds</p>
+          </div>
+        </div>
+
+        {timeline.length === 0 ? (
+          <div className="timeline-empty">No negotiation offer history is available.</div>
+        ) : (
+          <div className="timeline-table">
+            <div className="timeline-header">
+              <span>ROUND</span>
+              <span>BUYER OFFER</span>
+              <span>SELLER OFFER</span>
+              <span>GAP</span>
+            </div>
+            {timeline.map((item) => {
+              const gap = item.buyerOffer !== null && item.sellerOffer !== null
+                ? Math.abs(item.sellerOffer - item.buyerOffer)
+                : null;
+              return (
+                <div className="timeline-row" key={item.round}>
+                  <strong>{item.round}</strong>
+                  <span>{formatOutcomeMoney(item.buyerOffer)}</span>
+                  <span>{formatOutcomeMoney(item.sellerOffer)}</span>
+                  <span>{gap === null ? "—" : formatOutcomeMoney(gap)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="outcome-panel">
+        <div className="outcome-panel-heading">
+          <span className="outcome-heading-icon">★</span>
+          <div>
+            <h3>Objective Satisfaction</h3>
+            <p>How well each agent's objective was satisfied</p>
+          </div>
+        </div>
+
+        <div className="satisfaction-grid">
+          <div className="satisfaction-card">
+            <div className="satisfaction-header">
+              <div>
+                <span>BUYER</span>
+                <strong>Buyer Agent</strong>
+              </div>
+              <b>{buyerScore === null ? "—" : `${buyerScore}%`}</b>
+            </div>
+            <div className="satisfaction-track">
+              {buyerScore !== null && (
+                <div
+                  className="satisfaction-fill buyer"
+                  style={{ width: `${Math.min(100, Math.max(0, Number(buyerScore)))}%` }}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="satisfaction-card">
+            <div className="satisfaction-header">
+              <div>
+                <span>SELLER</span>
+                <strong>Seller Agent</strong>
+              </div>
+              <b>{sellerScore === null ? "—" : `${sellerScore}%`}</b>
+            </div>
+            <div className="satisfaction-track">
+              {sellerScore !== null && (
+                <div
+                  className="satisfaction-fill seller"
+                  style={{ width: `${Math.min(100, Math.max(0, Number(sellerScore)))}%` }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {buyerScore === null && sellerScore === null && (
+          <div className="satisfaction-note">
+            Objective satisfaction scores will appear when the backend provides them.
+          </div>
+        )}
+      </div>
+
+      <div className="outcome-summary">
+        <div><span>MODE</span><strong>{mode}</strong></div>
+        <div><span>FINAL BUYER OFFER</span><strong>{formatOutcomeMoney(finalBuyerOffer)}</strong></div>
+        <div><span>FINAL SELLER OFFER</span><strong>{formatOutcomeMoney(finalSellerOffer)}</strong></div>
+        <div><span>SESSION</span><strong>{session.negotiation_id || "Completed"}</strong></div>
+      </div>
+    </section>
+  );
 }
 
 
