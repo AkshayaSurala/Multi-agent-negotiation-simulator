@@ -143,6 +143,7 @@ class NegotiationStateResponse(BaseModel):
     mode: str
     status: str
     round: int
+    completed_rounds: Optional[int] = None
     max_rounds: int
     human_role: Optional[str] = None
     ai_role: Optional[str] = None

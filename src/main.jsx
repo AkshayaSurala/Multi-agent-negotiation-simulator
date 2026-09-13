@@ -332,22 +332,37 @@ function normalizeAiVsAiHistory(
         ).toLowerCase();
 
       const isBuyer =
-        agent.includes("buyer");
+        agent.includes("buyer") || item.sender === "ai_buyer";
 
       const isSeller =
-        agent.includes("seller");
+        agent.includes("seller") || item.sender === "ai_seller";
 
       const sender =
-        isBuyer
+        item.sender ||
+        (isBuyer
           ? "ai_buyer"
           : isSeller
             ? "ai_seller"
-            : "system";
+            : "system");
 
-      const offer =
-        extractPriceFromText(
-          item.message
-        );
+      const msg = String(item.message || "");
+      const isAgree =
+        item.decision === "AGREE" ||
+        item.decision === "ACCEPT" ||
+        /DECISION:\s*(AGREE|ACCEPT)/i.test(msg) ||
+        /We agreed with your price/i.test(msg);
+
+      const decision = isAgree
+        ? "AGREE"
+        : (item.decision || (/DECISION:\s*([A-Z_]+)/i.exec(msg)?.[1] ?? (isBuyer ? "OFFER" : "COUNTER")));
+
+      const agreedPrice = isAgree
+        ? (item.agreed_price ?? item.offer ?? extractPriceFromText(msg))
+        : null;
+
+      const offer = isAgree
+        ? null
+        : (item.offer ?? extractPriceFromText(msg));
 
       return {
 
@@ -365,13 +380,13 @@ function normalizeAiVsAiHistory(
 
         offer,
 
-        decision:
-          item.decision ||
-          null,
+        agreed_price:
+          agreedPrice,
+
+        decision,
 
         reason:
-          item.reason ||
-          null,
+          isAgree ? null : (item.reason || null),
 
         historyIndex:
           index,
@@ -1185,6 +1200,20 @@ function App() {
      * Build a session object so the same
      * UI can display the simulation.
      */
+    const completedRounds =
+      data.completed_rounds ??
+      data.round ??
+      data.current_state?.completed_rounds ??
+      data.current_state?.round ??
+      (normalizedHistory.length > 0
+        ? Math.max(...normalizedHistory.map((h) => h.round || 0))
+        : Number(maxRounds));
+
+    const totalMaxRounds =
+      data.max_rounds ??
+      data.current_state?.max_rounds ??
+      Number(maxRounds);
+
     const aiSession = {
 
       mode:
@@ -1201,10 +1230,13 @@ function App() {
         data.status,
 
       round:
-        Number(maxRounds),
+        completedRounds,
+
+      completed_rounds:
+        completedRounds,
 
       max_rounds:
-        Number(maxRounds),
+        totalMaxRounds,
 
       human_role:
         null,
@@ -3032,36 +3064,59 @@ function App() {
 
               ) : (
 
-                session.history?.map(
-                  (item, index) => (
+                <>
+                  {session.history?.map(
+                    (item, index) => (
 
-                    <MessageBubble
+                      <MessageBubble
 
-                      key={
-                        `${index}-${item.timestamp || ""}-${item.historyIndex || ""}`
-                      }
+                        key={
+                          `${index}-${item.timestamp || ""}-${item.historyIndex || ""}`
+                        }
 
-                      item={
-                        item
-                      }
+                        item={
+                          item
+                        }
 
-                      humanRole={
-                        session.human_role
-                      }
+                        humanRole={
+                          session.human_role
+                        }
 
-                      aiRole={
-                        session.ai_role
-                      }
+                        aiRole={
+                          session.ai_role
+                        }
 
-                      aiVsAi={
-                        session.mode ===
-                        "ai_ai"
-                      }
+                        aiVsAi={
+                          session.mode ===
+                          "ai_ai"
+                        }
 
-                    />
+                      />
 
-                  )
-                )
+                    )
+                  )}
+
+                  {isAiVsAi &&
+                    (session.status === "accepted" ||
+                      session.original_status === "AGREEMENT_REACHED" ||
+                      (session.agreed_price !== null &&
+                        session.agreed_price !== undefined)) && (
+                      <div className="chat-agreement-card">
+                        <div className="chat-agreement-title">
+                          <span className="chat-agreement-icon">🤝</span> AGREEMENT REACHED
+                        </div>
+                        {session.agreed_price !== null &&
+                          session.agreed_price !== undefined && (
+                            <div className="chat-agreement-price">
+                              Final Price:{" "}
+                              <strong>
+                                {money(session.agreed_price)}
+                              </strong>
+                            </div>
+                          )}
+                      </div>
+                    )}
+                </>
 
               )}
 
@@ -3307,12 +3362,14 @@ function App() {
                     className={`decision ${status}`}
                   >
 
-                    {status
-                      .replace(
-                        /_/g,
-                        " "
-                      )
-                      .toUpperCase()}
+                    {status === "accepted" || status === "agreement_reached"
+                      ? "🤝 AGREEMENT REACHED"
+                      : status
+                        .replace(
+                          /_/g,
+                          " "
+                        )
+                        .toUpperCase()}
 
                   </div>
 
@@ -3827,27 +3884,21 @@ function MessageBubble({
   let offerLabel =
     "Offer";
 
-
-  if (
-    !isHuman
-  ) {
-
-    offerLabel =
-      "Counter";
-
-  }
-
-
   if (
     aiVsAi
   ) {
 
     offerLabel =
       isBuyerAi
-        ? "Buyer Offer"
-        : isSellerAi
-          ? "Seller Offer"
-          : "Offer";
+        ? "Offer"
+        : "Counter";
+
+  } else if (
+    !isHuman
+  ) {
+
+    offerLabel =
+      "Counter";
 
   }
 
@@ -3883,41 +3934,54 @@ function MessageBubble({
 
 
       <div
-        className="bubble"
+        className={`bubble ${item.decision === "AGREE" ? "agree-bubble" : ""}`}
       >
 
-        <p>
-          {item.message}
-        </p>
-
-
-        {item.offer !==
-          null &&
-          item.offer !==
-          undefined && (
-
-            <div
-              className="offer-chip"
-            >
-
-              {offerLabel}
-
-              {" · "}
-
-              {money(
-                item.offer
-              )}
-
+        {item.decision === "AGREE" ? (
+          <div className="agree-bubble-content">
+            <div className="agree-bubble-decision">
+              DECISION: AGREE
             </div>
+            <p className="agree-bubble-text">
+              We agreed with your price.
+            </p>
+            {item.agreed_price !== null &&
+              item.agreed_price !== undefined && (
+                <div className="agree-bubble-price">
+                  Agreed Price:{" "}
+                  <strong>
+                    {money(item.agreed_price)}
+                  </strong>
+                </div>
+              )}
+          </div>
+        ) : (
+          <>
+            <p>
+              {item.message}
+            </p>
 
-          )}
+            {item.offer !== null &&
+              item.offer !== undefined && (
+                <div
+                  className="offer-chip"
+                >
+                  {offerLabel}
+                  {" · "}
+                  {money(
+                    item.offer
+                  )}
+                </div>
+              )}
+          </>
+        )}
 
       </div>
 
 
-      {!aiVsAi &&
-        !isHuman &&
-        item.decision && (
+      {(isSellerAi || (!aiVsAi && !isHuman)) &&
+        item.decision &&
+        item.decision !== "AGREE" && (
 
           <div
             className={`inline-decision ${String(
@@ -3932,9 +3996,9 @@ function MessageBubble({
         )}
 
 
-      {!aiVsAi &&
-        !isHuman &&
-        item.reason && (
+      {(isSellerAi || (!aiVsAi && !isHuman)) &&
+        item.reason &&
+        item.decision !== "AGREE" && (
 
           <div
             className="inline-reason"

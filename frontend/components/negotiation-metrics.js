@@ -39,6 +39,11 @@ function formatStatus(status) {
         return "UNKNOWN";
     }
 
+    const val = String(status).trim().toLowerCase();
+    if (val === "accepted" || val === "agreement_reached" || val === "agreement reached") {
+        return "🤝 AGREEMENT REACHED";
+    }
+
     return String(status)
         .replace(/_/g, " ")
         .toUpperCase();
@@ -163,7 +168,7 @@ function renderMetrics(
             <div class="negotiation-metrics">
 
                 ${metricHtml(
-                    "Round",
+                    "Rounds",
                     "—"
                 )}
 
@@ -215,7 +220,9 @@ function renderMetrics(
     ----------------------------------------------------- */
 
     const round =
+        data.completed_rounds ??
         data.round ??
+        data.current_state?.completed_rounds ??
         data.current_state?.round ??
         "—";
 
@@ -323,7 +330,7 @@ function renderMetrics(
         <div class="negotiation-metrics">
 
             ${metricHtml(
-                "Round",
+                "Rounds",
                 `${round} / ${maxRounds}`
             )}
 

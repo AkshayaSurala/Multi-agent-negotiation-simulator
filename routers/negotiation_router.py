@@ -506,6 +506,7 @@ def get_negotiation_state(negotiation_id: str):
         mode=session.mode,
         status=session.status,
         round=session.round,
+        completed_rounds=session.round,
         max_rounds=session.max_rounds,
         human_role=session.human_role,
         ai_role=session.ai_role,
@@ -755,6 +756,10 @@ def start_negotiation(request: NegotiationRequest):
     session_id = f"ai_{uuid.uuid4().hex[:8]}"
     history = orchestrator.get_history()
     orch_state = orchestrator.get_state()
+    if isinstance(orch_state, dict):
+        orch_state["round"] = orchestrator.round_count
+        orch_state["completed_rounds"] = orchestrator.round_count
+        orch_state["max_rounds"] = request.max_rounds
 
     ai_session = PracticeNegotiationSession(
         negotiation_id=session_id,
@@ -787,6 +792,9 @@ def start_negotiation(request: NegotiationRequest):
         "negotiation_id": session_id,
         "status": result.get("status"),
         "agreed_price": result.get("agreed_price"),
+        "round": orchestrator.round_count,
+        "completed_rounds": orchestrator.round_count,
+        "max_rounds": request.max_rounds,
         "scenario": SCENARIOS[request.scenario],
         "scenario_id": request.scenario,
         "buyer_personality": buyer_personality,

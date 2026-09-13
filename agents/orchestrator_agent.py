@@ -57,19 +57,20 @@ class OrchestratorAgent:
 
         return self.agents[next_index]
 
-    def add_message(self, agent, message):
+    def add_message(self, agent, message, **kwargs):
         """Add an agent's message to the negotiation history."""
 
         entry = {
             "round": self.round_count,
             "agent": agent,
-            "message": message
+            "message": message,
+            **kwargs
         }
 
         self.negotiation_history.append(entry)
 
         # Update latest offer/message
-        self.current_state["last_offer"] = message
+        self.current_state["last_offer"] = kwargs.get("offer", message)
 
     def next_turn(self):
         """Move the negotiation to the next agent."""

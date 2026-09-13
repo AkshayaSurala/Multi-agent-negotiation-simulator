@@ -548,6 +548,95 @@ select:disabled {
   font-size: 10px;
 }
 
+.chat-agreement-card {
+  margin: 16px auto;
+  width: 90%;
+  max-width: 480px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(20, 80, 50, 0.5), rgba(15, 45, 35, 0.8));
+  border: 1px solid rgba(88, 214, 141, 0.45);
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(88, 214, 141, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chat-agreement-title {
+  color: #58d68d;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.chat-agreement-price {
+  color: #eef2ff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.chat-agreement-price strong {
+  color: #63dca9;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.bubble.agree-bubble {
+  border-color: rgba(88, 214, 141, 0.4);
+  background: rgba(18, 48, 38, 0.85);
+}
+
+.agree-bubble-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agree-bubble-decision {
+  color: #58d68d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.agree-bubble-text {
+  margin: 0;
+  color: #eef2ff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.agree-bubble-price {
+  margin-top: 4px;
+  color: #c8d0e8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.agree-bubble-price strong {
+  color: #58d68d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .composer {
   display: grid;
   grid-template-columns: 1fr 84px;
