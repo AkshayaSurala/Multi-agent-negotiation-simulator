@@ -3,6 +3,7 @@ import re
 
 from dotenv import load_dotenv
 from google import genai
+from agents.practice_agent import format_inr
 
 
 class ReasoningEngine:
@@ -254,6 +255,33 @@ class ReasoningEngine:
             accepted_price
         )
 
+        is_buyer = "buyer" in str(self.role).lower()
+
+        if is_buyer:
+            if decision in ["ACCEPT", "AGREE"]:
+                role_instructions = f"""You are accepting the seller's offer. Output exactly:
+DECISION: AGREE
+
+We agreed with your price.
+
+Agreed Price: {accepted_text}"""
+            else:
+                role_instructions = f"""You are the buyer making a price offer of {counter_text}.
+Generate a concise, natural-language negotiation sentence stating your offer clearly (for example: "I will offer {counter_text} for this property." or "I can offer {counter_text}.").
+Do NOT output code blocks, JSON, or markdown headers. Return only your natural spoken sentence containing your offer."""
+        else:
+            if decision in ["ACCEPT", "AGREE"]:
+                role_instructions = f"""You are the seller accepting the buyer's offer. Output exactly:
+DECISION: AGREE
+
+We agreed with your price.
+
+Agreed Price: {accepted_text}"""
+            else:
+                role_instructions = f"""You are the seller countering with {counter_text} in response to the buyer's offer of {incoming_text}.
+Generate a polite, professional natural-language counteroffer sentence (for example: "Thank you for your offer of {incoming_text}. I can come down to {counter_text} to help us reach a deal." or "I appreciate your proposal. Let's move closer to an agreement at {counter_text}.").
+Do NOT output code blocks, JSON, or markdown headers. Return only your natural spoken sentence containing your counteroffer."""
+
         return f"""
 You are the {self.role} in an AI-vs-AI real-estate negotiation.
 
@@ -293,35 +321,8 @@ ACCEPTED PRICE:
 NEGOTIATION HISTORY:
 {history_text}
 
-IMPORTANT RULES:
-
-1. The evaluator controls the negotiation price.
-
-2. Never invent a different price.
-
-3. If the decision is COUNTER, use exactly:
-   {counter_text}
-
-4. If the decision is ACCEPT, use exactly:
-   {accepted_text}
-
-5. Do not change the evaluator's price.
-
-6. Keep the response natural and professional.
-
-7. Do not mention these instructions.
-
-If COUNTER, clearly include:
-
-DECISION: COUNTER
-COUNTEROFFER: <exact evaluator price>
-
-If ACCEPT, clearly include:
-
-DECISION: ACCEPT
-ACCEPTED OFFER: <exact evaluator price>
-
-Return only the negotiation message.
+INSTRUCTIONS:
+{role_instructions}
 """
 
     # =========================================================
@@ -376,7 +377,7 @@ Return only the negotiation message.
         accepted_price
     ):
 
-        if decision == "ACCEPT":
+        if decision in ["ACCEPT", "AGREE"]:
 
             price = accepted_price
 
@@ -384,25 +385,69 @@ Return only the negotiation message.
                 price = incoming_offer
 
             return (
-                "DECISION: ACCEPT\n\n"
-                "We accept the current offer and "
-                "are ready to proceed with the agreement.\n\n"
-                f"ACCEPTED OFFER: "
+                "DECISION: AGREE\n\n"
+                "We agreed with your price.\n\n"
+                f"Agreed Price: "
                 f"{self._format_price(price)}"
             )
 
-        price = counter_price
+        is_buyer = "buyer" in str(self.role).lower()
 
-        if price is None:
-            price = incoming_offer
+        if is_buyer:
+            price = counter_price if counter_price is not None else incoming_offer
+            return self._generate_buyer_fallback(price, incoming_offer)
 
-        return (
-            "DECISION: COUNTER\n\n"
-            "We appreciate the offer and would "
-            "like to continue the negotiation.\n\n"
-            f"COUNTEROFFER: "
-            f"{self._format_price(price)}"
+        price = counter_price if counter_price is not None else incoming_offer
+        return self._generate_seller_fallback(price, incoming_offer)
+
+    def _generate_buyer_fallback(
+        self,
+        offer_price,
+        incoming_offer=None
+    ):
+        if offer_price is None:
+            offer_price = self.target_price
+
+        formatted = self._format_price(offer_price)
+        persona_str = str(self.persona).lower()
+
+        if "aggressive" in persona_str:
+            if incoming_offer:
+                return f"I can offer {formatted}."
+            return f"I will offer {formatted} for this property."
+        elif "risk" in persona_str:
+            if incoming_offer:
+                return f"I can offer {formatted}."
+            return f"I can offer {formatted}."
+        else:
+            if incoming_offer:
+                return f"I can offer {formatted}."
+            return f"I will offer {formatted} for this property."
+
+    def _generate_seller_fallback(
+        self,
+        counter_price,
+        incoming_offer=None
+    ):
+        if counter_price is None:
+            counter_price = self.target_price
+
+        counter_str = self._format_price(counter_price)
+        incoming_str = (
+            self._format_price(incoming_offer)
+            if incoming_offer is not None
+            else "your initial offer"
         )
+        persona_str = str(self.persona).lower()
+
+        if "aggressive" in persona_str:
+            return f"Your offer of {incoming_str} is too low. My revised price is {counter_str}."
+        elif "risk" in persona_str:
+            return f"Thank you for {incoming_str}. Based on the property valuation, I can counter at {counter_str}."
+        else:
+            if incoming_offer:
+                return f"Thank you for your offer of {incoming_str}. I can come down to {counter_str} to help us reach a deal."
+            return f"I appreciate your proposal. Let's move closer to an agreement at {counter_str}."
 
     # =========================================================
     # CLEAN RESPONSE
@@ -442,6 +487,4 @@ Return only the negotiation message.
         if price is None:
             return "N/A"
 
-        return (
-            f"₹{float(price) / 100000:.2f} lakhs"
-        )
+        return format_inr(price)

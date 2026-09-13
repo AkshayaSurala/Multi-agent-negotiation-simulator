@@ -1,4 +1,5 @@
 import re
+from agents.practice_agent import extract_offer_from_text, format_inr
 
 
 # ============================================================
@@ -7,84 +8,7 @@ import re
 
 def extract_offer_amount(text):
     """Extract an offer amount from an agent response."""
-
-    if text is None:
-        return None
-
-    if isinstance(text, (int, float)):
-        return float(text)
-
-    text = str(text)
-
-    # Extract prices written in lakhs
-    match = re.search(
-        r'₹?\s*([\d,]+(?:\.\d+)?)\s*(?:lakhs?|lakh)\b',
-        text,
-        re.IGNORECASE
-    )
-
-    if match:
-        return (
-            float(match.group(1).replace(",", ""))
-            * 100000
-        )
-
-    # Extract prices written using L
-    match = re.search(
-        r'₹?\s*([\d,]+(?:\.\d+)?)\s*[lL]\b',
-        text
-    )
-
-    if match:
-        return (
-            float(match.group(1).replace(",", ""))
-            * 100000
-        )
-
-    # Extract prices written in crores
-    match = re.search(
-        r'₹?\s*([\d,]+(?:\.\d+)?)\s*(?:crores?|crore)\b',
-        text,
-        re.IGNORECASE
-    )
-
-    if match:
-        return (
-            float(match.group(1).replace(",", ""))
-            * 10000000
-        )
-
-    # Extract rupee values
-    match = re.search(
-        r'₹\s*([\d,]+(?:\.\d+)?)',
-        text
-    )
-
-    if match:
-        return float(
-            match.group(1).replace(",", "")
-        )
-
-    # Extract counteroffer values without ₹
-    match = re.search(
-        r'(?:COUNTEROFFER|COUNTER OFFER|OFFER)\s*[:\-]?\s*'
-        r'₹?\s*([\d,]+(?:\.\d+)?)\s*(?:lakhs?|lakh|L)?',
-        text,
-        re.IGNORECASE
-    )
-
-    if match:
-        number = float(
-            match.group(1).replace(",", "")
-        )
-
-        return (
-            number * 100000
-            if number < 10000
-            else number
-        )
-
-    return None
+    return extract_offer_from_text(text)
 
 
 # ============================================================
@@ -92,12 +16,8 @@ def extract_offer_amount(text):
 # ============================================================
 
 def format_price(amount):
-    """Format a numeric price as Indian lakhs."""
-
-    if amount is None:
-        return "N/A"
-
-    return f"₹{float(amount) / 100000:.2f} lakhs"
+    """Format a numeric price using standard INR formatting."""
+    return format_inr(amount)
 
 
 # ============================================================
@@ -242,9 +162,13 @@ def update_orchestrator_state(
         state["status"] = status
         state["current_agent"] = current_agent
         state["last_offer"] = last_offer
+        if hasattr(orchestrator, "round_count"):
+            state["round"] = orchestrator.round_count
+            state["completed_rounds"] = orchestrator.round_count
 
     except Exception:
         pass
+
 
 
 # ============================================================
@@ -255,15 +179,37 @@ def add_history(
     history,
     round_number,
     agent,
-    message
+    message,
+    decision=None,
+    offer=None,
+    agreed_price=None,
+    reason=None,
+    sender=None
 ):
     """Add an agent message to negotiation history."""
 
-    history.append({
+    entry = {
         "round": round_number,
         "agent": agent,
         "message": message
-    })
+    }
+    if sender is not None:
+        entry["sender"] = sender
+    elif "buyer" in str(agent).lower():
+        entry["sender"] = "ai_buyer"
+    elif "seller" in str(agent).lower():
+        entry["sender"] = "ai_seller"
+
+    if decision is not None:
+        entry["decision"] = decision
+    if offer is not None:
+        entry["offer"] = offer
+    if agreed_price is not None:
+        entry["agreed_price"] = agreed_price
+    if reason is not None:
+        entry["reason"] = reason
+
+    history.append(entry)
 
 
 # ============================================================
@@ -273,14 +219,16 @@ def add_history(
 def add_orchestrator_message(
     orchestrator,
     agent,
-    message
+    message,
+    **kwargs
 ):
     """Safely add a message to the orchestrator."""
 
     try:
         orchestrator.add_message(
             agent,
-            message
+            message,
+            **kwargs
         )
 
     except Exception:
@@ -462,62 +410,57 @@ def run_negotiation(
 
             buyer_response = (
                 _fallback_response_from_evaluation(
-                    buyer_evaluation
+                    buyer_evaluation,
+                    role="buyer"
                 )
             )
 
         # ----------------------------------------------------
-        # Price comes only from evaluator.
+        # Extract offer from natural language buyer message
         # ----------------------------------------------------
 
-        buyer_decision = str(
+        buyer_decision_raw = str(
             buyer_evaluation.get(
                 "decision",
                 "COUNTER"
             )
         ).upper()
 
-        if buyer_decision == "ACCEPT":
-
+        if buyer_decision_raw in ["ACCEPT", "AGREE"] and seller_offer is not None:
             buyer_offer = (
                 buyer_evaluation.get(
                     "accepted_price"
                 )
+                if buyer_evaluation.get("accepted_price") is not None
+                else seller_offer
             )
-
         else:
-
-            buyer_offer = (
-                buyer_evaluation.get(
-                    "counter_price"
-                )
-            )
+            extracted_offer = extract_offer_from_text(buyer_response)
+            if extracted_offer is not None:
+                buyer_offer = extracted_offer
+            else:
+                buyer_offer = buyer_evaluation.get("counter_price")
 
         # ----------------------------------------------------
         # Safety fallback.
         # ----------------------------------------------------
 
         if buyer_offer is None:
-
             buyer_offer = (
                 last_buyer_offer
                 if last_buyer_offer is not None
                 else reference_price * 0.90
             )
 
-            buyer_offer = _round_price(
-                buyer_offer
-            )
-
-            buyer_response = (
-                _fallback_counter_response(
-                    buyer_offer
-                )
-            )
-
         buyer_offer = _round_price(
             buyer_offer
         )
+
+        buyer_decision = "OFFER" if round_number == 1 else "COUNTER"
+
+        # Ensure buyer message is a natural offer presentation
+        if "DECISION: AGREE" in buyer_response or "We agreed" in buyer_response:
+            buyer_response = f"I can offer {format_price(buyer_offer)} for this property."
 
         # ----------------------------------------------------
         # Buyer output.
@@ -540,59 +483,20 @@ def run_negotiation(
             history,
             round_number,
             "Buyer Agent",
-            buyer_response
+            buyer_response,
+            decision=buyer_decision,
+            offer=buyer_offer,
+            sender="ai_buyer"
         )
 
         add_orchestrator_message(
             orchestrator,
             "Buyer Agent",
-            buyer_response
+            buyer_response,
+            decision=buyer_decision,
+            offer=buyer_offer,
+            sender="ai_buyer"
         )
-
-        # ----------------------------------------------------
-        # Exact agreement after Buyer turn.
-        # ----------------------------------------------------
-
-        if offers_match_exactly(
-            buyer_offer,
-            seller_offer
-        ):
-
-            agreed_price = float(
-                buyer_offer
-            )
-
-            status = (
-                "AGREEMENT_REACHED"
-            )
-
-            print("\n===================================")
-            print("       AGREEMENT REACHED")
-            print("===================================")
-
-            print(
-                f"Buyer Offer: "
-                f"{format_price(buyer_offer)}"
-            )
-
-            print(
-                f"Seller Offer: "
-                f"{format_price(seller_offer)}"
-            )
-
-            print(
-                f"Agreed Price: "
-                f"{format_price(agreed_price)}"
-            )
-
-            update_orchestrator_state(
-                orchestrator,
-                "Agreement Reached",
-                "Negotiation Completed",
-                format_price(agreed_price)
-            )
-
-            break
 
         last_buyer_offer = buyer_offer
 
@@ -634,7 +538,8 @@ def run_negotiation(
 
             seller_response = (
                 _fallback_response_from_evaluation(
-                    seller_evaluation
+                    seller_evaluation,
+                    role="seller"
                 )
             )
 
@@ -649,13 +554,15 @@ def run_negotiation(
             )
         ).upper()
 
-        if seller_decision == "ACCEPT":
+        if seller_decision in ["ACCEPT", "AGREE"]:
 
             seller_offer = (
                 seller_evaluation.get(
                     "accepted_price"
                 )
             )
+            if seller_offer is None:
+                seller_offer = buyer_offer
 
         else:
 
@@ -677,19 +584,43 @@ def run_negotiation(
                 else reference_price
             )
 
-            seller_offer = _round_price(
-                seller_offer
-            )
-
-            seller_response = (
-                _fallback_counter_response(
-                    seller_offer
-                )
-            )
-
         seller_offer = _round_price(
             seller_offer
         )
+
+        is_seller_agree = (
+            seller_decision in ["ACCEPT", "AGREE"]
+            or offers_match_exactly(buyer_offer, seller_offer)
+            or (last_seller_offer is not None and buyer_offer >= last_seller_offer)
+            or (seller_offer is not None and buyer_offer >= seller_offer)
+        )
+
+        if is_seller_agree:
+            seller_decision = "AGREE"
+            seller_offer = buyer_offer
+            agreed_price = float(buyer_offer)
+            status = "ACCEPTED"
+            seller_response = (
+                "DECISION: AGREE\n\n"
+                "We agreed with your price.\n\n"
+                f"Agreed Price: {format_price(agreed_price)}"
+            )
+            seller_reason = None
+        else:
+            seller_decision = "COUNTER"
+            concession_pct = 45
+            persona_val = str(getattr(seller_reasoning, "persona", "")).lower()
+            if "aggressive" in persona_val:
+                concession_pct = 15
+            elif "risk" in persona_val:
+                concession_pct = 30
+            else:
+                concession_pct = 45
+
+            seller_reason = (
+                f"Seller countered at {format_price(seller_offer)} "
+                f"using a {concession_pct}% concession step."
+            )
 
         # ----------------------------------------------------
         # Seller output.
@@ -703,54 +634,49 @@ def run_negotiation(
             f"{seller_decision}"
         )
 
-        print(
-            f"Seller Offer: "
-            f"{format_price(seller_offer)}"
-        )
+        if is_seller_agree:
+            print(
+                f"Agreed Price: "
+                f"{format_price(agreed_price)}"
+            )
+        else:
+            print(
+                f"Seller Offer: "
+                f"{format_price(seller_offer)}"
+            )
 
         add_history(
             history,
             round_number,
             "Seller Agent",
-            seller_response
+            seller_response,
+            decision=seller_decision,
+            offer=None if is_seller_agree else seller_offer,
+            agreed_price=agreed_price if is_seller_agree else None,
+            reason=None if is_seller_agree else seller_reason,
+            sender="ai_seller"
         )
 
         add_orchestrator_message(
             orchestrator,
             "Seller Agent",
-            seller_response
+            seller_response,
+            decision=seller_decision,
+            offer=None if is_seller_agree else seller_offer,
+            agreed_price=agreed_price if is_seller_agree else None,
+            reason=None if is_seller_agree else seller_reason,
+            sender="ai_seller"
         )
 
         # ====================================================
         # EXACT AGREEMENT CHECK
         # ====================================================
 
-        if offers_match_exactly(
-            buyer_offer,
-            seller_offer
-        ):
-
-            agreed_price = float(
-                buyer_offer
-            )
-
-            status = (
-                "AGREEMENT_REACHED"
-            )
+        if is_seller_agree:
 
             print("\n===================================")
             print("       AGREEMENT REACHED")
             print("===================================")
-
-            print(
-                f"Buyer Offer: "
-                f"{format_price(buyer_offer)}"
-            )
-
-            print(
-                f"Seller Offer: "
-                f"{format_price(seller_offer)}"
-            )
 
             print(
                 f"Agreed Price: "
@@ -933,9 +859,14 @@ def run_negotiation(
     # FINAL RESULT
     # ========================================================
 
+    completed_rounds = getattr(orchestrator, "round_count", len(history) // 2 if history else 0)
+
     result = {
         "status": status,
         "agreed_price": agreed_price,
+        "round": completed_rounds,
+        "completed_rounds": completed_rounds,
+        "max_rounds": max_rounds,
         "negotiation_history": history
     }
 
@@ -943,8 +874,7 @@ def run_negotiation(
     # AGREEMENT_REACHED can never have null agreed_price.
 
     if (
-        result["status"]
-        == "AGREEMENT_REACHED"
+        result["status"] in ["ACCEPTED", "AGREEMENT_REACHED"]
         and result["agreed_price"] is None
     ):
 
@@ -958,7 +888,8 @@ def run_negotiation(
 # ============================================================
 
 def _fallback_response_from_evaluation(
-    evaluation
+    evaluation,
+    role="buyer"
 ):
     """Generate a safe response when Gemini fails."""
 
@@ -969,16 +900,18 @@ def _fallback_response_from_evaluation(
         )
     ).upper()
 
-    if decision == "ACCEPT":
+    if decision in ["ACCEPT", "AGREE"]:
 
         price = evaluation.get(
             "accepted_price"
         )
+        if price is None:
+            price = evaluation.get("incoming_offer")
 
         return (
-            "DECISION: ACCEPT\n\n"
-            "We accept the current offer.\n\n"
-            f"ACCEPTED OFFER: "
+            "DECISION: AGREE\n\n"
+            "We agreed with your price.\n\n"
+            f"Agreed Price: "
             f"{format_price(price)}"
         )
 
@@ -986,13 +919,12 @@ def _fallback_response_from_evaluation(
         "counter_price"
     )
 
-    return (
-        "DECISION: COUNTER\n\n"
-        "We appreciate the offer and "
-        "would like to continue negotiating.\n\n"
-        f"COUNTEROFFER: "
-        f"{format_price(price)}"
-    )
+    if "buyer" in str(role).lower():
+        return f"I will offer {format_price(price)} for this property."
+
+    incoming = evaluation.get("incoming_offer")
+    incoming_str = format_price(incoming) if incoming is not None else "your proposal"
+    return f"Thank you for your offer of {incoming_str}. I can come down to {format_price(price)} to help us reach a deal."
 
 
 # ============================================================
