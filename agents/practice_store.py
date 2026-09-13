@@ -34,6 +34,10 @@ class PracticeNegotiationSession:
     last_seller_offer: Optional[float] = None
     agreed_price: Optional[float] = None
 
+    # Final objective satisfaction scores (0-100).
+    buyer_objective_satisfaction: Optional[float] = None
+    seller_objective_satisfaction: Optional[float] = None
+
     history: List[Dict[str, Any]] = field(default_factory=list)
 
     # =====================================================
