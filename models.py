@@ -87,6 +87,8 @@ class PracticeNegotiationStartResponse(BaseModel):
     human_role: str
     ai_role: str
     status: str
+    scenario: Optional[int] = None
+    scenario_name: Optional[str] = None
     property: Dict[str, Any]
     ai_message: str
 
@@ -169,6 +171,8 @@ class NegotiationStateResponse(BaseModel):
     deadlock_tolerance: float = 1000.0
     deadlock_threshold: int = 3
     deadlock_reason: Optional[str] = None
+    buyer_objective_satisfaction: Optional[float] = None
+    seller_objective_satisfaction: Optional[float] = None
     history: List[Dict[str, Any]]
 
 

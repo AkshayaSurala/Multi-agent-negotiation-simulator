@@ -442,7 +442,8 @@ function getLastAgentOffers(
       buyerOffer === null &&
       item.sender === "ai_buyer" &&
       item.offer !== null &&
-      item.offer !== undefined
+      item.offer !== undefined &&
+      Number(item.offer) > 0
     ) {
 
       buyerOffer =
@@ -454,7 +455,8 @@ function getLastAgentOffers(
       sellerOffer === null &&
       item.sender === "ai_seller" &&
       item.offer !== null &&
-      item.offer !== undefined
+      item.offer !== undefined &&
+      Number(item.offer) > 0
     ) {
 
       sellerOffer =
@@ -1240,6 +1242,20 @@ function App() {
       original_status:
         data.status,
 
+      scenario:
+        data.scenario_id ??
+        Number(scenario),
+
+      scenario_name:
+        data.scenario_name ||
+        (
+          typeof data.scenario === "string"
+            ? data.scenario
+            : scenarios[Number(scenario)]
+        ) ||
+        fallbackScenarios[Number(scenario)] ||
+        "Real Estate Negotiation",
+
       round:
         completedRounds,
 
@@ -1290,6 +1306,16 @@ function App() {
 
       agreed_price:
         data.agreed_price,
+
+      buyer_objective_satisfaction:
+        data.buyer_objective_satisfaction ??
+        data.current_state?.buyer_objective_satisfaction ??
+        null,
+
+      seller_objective_satisfaction:
+        data.seller_objective_satisfaction ??
+        data.current_state?.seller_objective_satisfaction ??
+        null,
 
       stagnant_round_count:
         data.current_state
@@ -3727,7 +3753,7 @@ function buildOutcomeTimeline(history = []) {
     }
     const sender = String(item.sender || item.agent || "").toLowerCase();
     const offer = Number(item.offer);
-    if (!Number.isFinite(offer)) return;
+    if (!Number.isFinite(offer) || offer <= 0) return;
     if (sender.includes("buyer")) {
       rounds[round].buyerOffer = offer;
     } else if (sender.includes("seller")) {
@@ -3772,18 +3798,33 @@ function OutcomeScreen({ session }) {
     session.property_name ||
     "Selected Property";
 
-  const scenarioName = session.scenario_name || session.scenario || "Real Estate Negotiation";
+  const scenarioName = session.scenario_name || scenarios?.[Number(session.scenario)] || fallbackScenarios?.[Number(session.scenario)] || "Real Estate Negotiation";
   const agreedPrice = session.agreed_price ?? null;
   const buyerScore = getOutcomeScore(session, "buyer");
   const sellerScore = getOutcomeScore(session, "seller");
   const mode = session.mode === "ai_ai" ? "AI vs AI" : "Human vs AI";
+  const buyerPersonalityName =
+    session.mode === "ai_ai"
+      ? getPersonalityLabel(session.buyer_personality)
+      : "Human";
+  const sellerPersonalityName =
+    session.mode === "ai_ai"
+      ? getPersonalityLabel(session.seller_personality)
+      : getPersonalityLabel(
+          session.ai_personality ||
+          session.ai_personality_label ||
+          "Unknown"
+        );
 
-  const finalBuyerOffer = timeline.length
-    ? timeline[timeline.length - 1].buyerOffer
-    : null;
-  const finalSellerOffer = timeline.length
-    ? timeline[timeline.length - 1].sellerOffer
-    : null;
+  const finalBuyerOffer = [...timeline]
+    .reverse()
+    .find((item) => item.buyerOffer !== null && item.buyerOffer > 0)
+    ?.buyerOffer ?? agreedPrice;
+
+  const finalSellerOffer = [...timeline]
+    .reverse()
+    .find((item) => item.sellerOffer !== null && item.sellerOffer > 0)
+    ?.sellerOffer ?? agreedPrice;
 
   return (
     <section className="outcome-screen panel">
@@ -3925,6 +3966,8 @@ function OutcomeScreen({ session }) {
 
       <div className="outcome-summary">
         <div><span>MODE</span><strong>{mode}</strong></div>
+        <div><span>BUYER PERSONALITY</span><strong>{buyerPersonalityName}</strong></div>
+        <div><span>SELLER PERSONALITY</span><strong>{sellerPersonalityName}</strong></div>
         <div><span>FINAL BUYER OFFER</span><strong>{formatOutcomeMoney(finalBuyerOffer)}</strong></div>
         <div><span>FINAL SELLER OFFER</span><strong>{formatOutcomeMoney(finalSellerOffer)}</strong></div>
         <div><span>SESSION</span><strong>{session.negotiation_id || "Completed"}</strong></div>

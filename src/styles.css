@@ -987,6 +987,373 @@ select:disabled {
   line-height: 1.45;
 }
 
+
+/* =========================================================
+   MILESTONE 4 - OUTCOME SCREEN
+========================================================= */
+
+.outcome-screen {
+  margin-top: 22px;
+  padding: 22px;
+  border: 1px solid #263250;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top left, rgba(76, 91, 185, 0.14), transparent 34%),
+    linear-gradient(180deg, #0d1426 0%, #0a1120 100%);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.outcome-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 4px 2px 18px;
+  border-bottom: 1px solid #1e2941;
+}
+
+.outcome-title-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.outcome-trophy {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid #168f76;
+  background: rgba(20, 120, 99, 0.16);
+  color: #4ce0bb;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.outcome-eyebrow {
+  margin-bottom: 3px;
+  color: #7fa8ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.outcome-header h2 {
+  margin: 0;
+  color: #f2f5ff;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.outcome-header p {
+  margin: 5px 0 0;
+  color: #8f9bb6;
+  font-size: 12px;
+}
+
+.outcome-final-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 1px solid #2f6f67;
+  background: rgba(19, 117, 96, 0.12);
+  color: #55e4c1;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.outcome-final-status.deadlocked,
+.outcome-final-status.rejected,
+.outcome-final-status.cancelled {
+  border-color: #57456d;
+  background: rgba(100, 77, 126, 0.12);
+  color: #cbb4ff;
+}
+
+.outcome-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.outcome-panel {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #202d49;
+  border-radius: 14px;
+  background: rgba(12, 20, 38, 0.82);
+}
+
+.outcome-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.outcome-heading-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #334487;
+  border-radius: 8px;
+  background: rgba(61, 78, 173, 0.13);
+  color: #7291ff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.outcome-panel-heading h3 {
+  margin: 0;
+  color: #e8edff;
+  font-size: 14px;
+}
+
+.outcome-panel-heading p {
+  margin: 3px 0 0;
+  color: #7d8aa8;
+  font-size: 10px;
+}
+
+.agreement-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) repeat(2, minmax(0, 0.9fr));
+  gap: 10px;
+}
+
+.agreement-item {
+  min-width: 0;
+  min-height: 67px;
+  padding: 12px 13px;
+  border: 1px solid #1d2942;
+  border-radius: 10px;
+  background: #0a1222;
+}
+
+.agreement-item span,
+.outcome-summary span,
+.satisfaction-header span {
+  display: block;
+  color: #73809d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.agreement-item strong {
+  display: block;
+  margin-top: 7px;
+  color: #f1f4ff;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.agreement-item .agreement-highlight {
+  color: #7fa8ff;
+  font-size: 16px;
+}
+
+.timeline-table-wrap {
+  overflow-x: auto;
+}
+
+.timeline-table {
+  min-width: 620px;
+  overflow: hidden;
+  border: 1px solid #1e2a45;
+  border-radius: 11px;
+}
+
+.timeline-header,
+.timeline-row {
+  display: grid;
+  grid-template-columns: 0.55fr 1.25fr 1.25fr 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.timeline-header {
+  padding: 10px 12px;
+  background: #121d36;
+  color: #7f8bab;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.timeline-row {
+  padding: 12px;
+  border-top: 1px solid #18233a;
+  background: #0b1324;
+  color: #d9e1f5;
+  font-size: 11px;
+}
+
+.timeline-row strong {
+  color: #8ca8ff;
+}
+
+.timeline-row span,
+.timeline-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline-empty {
+  padding: 22px;
+  border: 1px dashed #283553;
+  border-radius: 10px;
+  text-align: center;
+  color: #74809b;
+  font-size: 11px;
+}
+
+.satisfaction-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.satisfaction-card {
+  padding: 13px;
+  border: 1px solid #202e4a;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #0c1528, #0a1323);
+}
+
+.satisfaction-card.buyer-card {
+  box-shadow: inset 0 1px 0 rgba(64, 224, 184, 0.035);
+}
+
+.satisfaction-card.seller-card {
+  box-shadow: inset 0 1px 0 rgba(137, 111, 255, 0.035);
+}
+
+.satisfaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.satisfaction-header strong {
+  display: block;
+  margin-top: 5px;
+  color: #eef2ff;
+  font-size: 13px;
+}
+
+.satisfaction-header b {
+  color: #f1f5ff;
+  font-size: 18px;
+}
+
+.satisfaction-track {
+  height: 7px;
+  margin-top: 13px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #18233a;
+}
+
+.satisfaction-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.35s ease;
+}
+
+.satisfaction-fill.buyer {
+  background: linear-gradient(90deg, #36d5ac, #51e9c2);
+}
+
+.satisfaction-fill.seller {
+  background: linear-gradient(90deg, #7663ff, #9b84ff);
+}
+
+.satisfaction-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #10192c;
+  color: #7886a3;
+  font-size: 10px;
+}
+
+.outcome-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.outcome-summary > div {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid #1e2b47;
+  border-radius: 10px;
+  background: #0a1221;
+}
+
+.outcome-summary strong {
+  display: block;
+  margin-top: 6px;
+  color: #dbe4fb;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1050px) {
+  .agreement-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agreement-wide {
+    grid-column: span 2;
+  }
+
+  .outcome-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .outcome-screen {
+    padding: 14px;
+  }
+
+  .outcome-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .outcome-final-status {
+    align-self: flex-start;
+  }
+
+  .satisfaction-grid,
+  .outcome-summary,
+  .agreement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agreement-wide {
+    grid-column: auto;
+  }
+}
+
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: 245px minmax(420px, 1fr);
@@ -1044,5 +1411,103 @@ select:disabled {
 
   .messages {
     min-height: 420px;
+  }
+}
+
+/* =========================================================
+   OUTCOME SCREEN - AGENT PERSONALITIES
+   Supports the optional Buyer/Seller personality cards
+   shown in the final negotiation summary.
+========================================================= */
+
+.outcome-personality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.outcome-personality-card {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid #1e2b47;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #0d172b 0%, #0a1221 100%);
+}
+
+.outcome-personality-card span {
+  display: block;
+  color: #73809d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.outcome-personality-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #e7edff;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.outcome-personality-card.buyer {
+  box-shadow: inset 3px 0 0 #36d5ac;
+}
+
+.outcome-personality-card.seller {
+  box-shadow: inset 3px 0 0 #7663ff;
+}
+
+/* Keep the four existing outcome summary cards visually consistent. */
+.outcome-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.outcome-summary > div {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid #1e2b47;
+  border-radius: 10px;
+  background: #0a1221;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
+}
+
+.outcome-summary > div:hover,
+.outcome-personality-card:hover {
+  border-color: #2b3b62;
+}
+
+.outcome-summary span {
+  display: block;
+  color: #73809d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.outcome-summary strong {
+  display: block;
+  margin-top: 6px;
+  color: #dbe4fb;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1050px) {
+  .outcome-personality-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .outcome-personality-grid {
+    grid-template-columns: 1fr;
   }
 }

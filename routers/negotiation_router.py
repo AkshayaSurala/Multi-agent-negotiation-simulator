@@ -78,6 +78,85 @@ def _get_session(negotiation_id):
     return session
 
 
+def _calculate_objective_satisfaction(
+    agreed_price,
+    target_price,
+    minimum_price,
+    maximum_price,
+    role
+):
+    """Return an objective satisfaction score from 0 to 100."""
+    if agreed_price is None or target_price is None or minimum_price is None:
+        return None
+
+    try:
+        agreed = float(agreed_price)
+        target = float(target_price)
+        minimum = float(minimum_price)
+        maximum = float(maximum_price) if maximum_price is not None else None
+    except (TypeError, ValueError):
+        return None
+
+    role = str(role).strip().lower()
+
+    if role == "buyer":
+        if agreed <= target:
+            return 100.0
+        if maximum is None or maximum <= target:
+            return 0.0
+        if agreed >= maximum:
+            return 0.0
+        score = ((maximum - agreed) / (maximum - target)) * 100.0
+
+    elif role == "seller":
+        if agreed >= target:
+            return 100.0
+        if target <= minimum:
+            return 0.0
+        if agreed <= minimum:
+            return 0.0
+        score = ((agreed - minimum) / (target - minimum)) * 100.0
+
+    else:
+        return None
+
+    return round(max(0.0, min(100.0, score)), 1)
+
+
+def _calculate_practice_satisfaction(session):
+    """Calculate final buyer/seller scores for a Human-vs-AI session."""
+    if session.agreed_price is None or session.reference_price is None:
+        return None, None
+
+    reference_price = float(session.reference_price)
+
+    buyer_target = reference_price * 0.90
+    buyer_minimum = reference_price * 0.70
+    buyer_maximum = reference_price
+
+    seller_target = reference_price * 0.95
+    seller_minimum = reference_price * 0.75
+    seller_maximum = reference_price * 1.10
+
+    buyer_score = _calculate_objective_satisfaction(
+        session.agreed_price,
+        buyer_target,
+        buyer_minimum,
+        buyer_maximum,
+        "buyer"
+    )
+
+    seller_score = _calculate_objective_satisfaction(
+        session.agreed_price,
+        seller_target,
+        seller_minimum,
+        seller_maximum,
+        "seller"
+    )
+
+    return buyer_score, seller_score
+
+
 def _get_property(scenario, property_index=None):
     filtered = get_filtered_properties(dataset, scenario)
 
@@ -319,6 +398,8 @@ def start_practice_negotiation(
         status="active",
         round=1,
         max_rounds=max(1, request.max_rounds),
+        scenario=request.scenario,
+        scenario_name=SCENARIOS[request.scenario],
         human_role=human_role,
         ai_role=ai_role,
         ai_personality=personality_key,
@@ -363,6 +444,8 @@ def start_practice_negotiation(
         human_role=session.human_role,
         ai_role=session.ai_role,
         status=session.status,
+        scenario=session.scenario,
+        scenario_name=session.scenario_name,
         property=session.property,
         ai_message=ai_greeting
     )
@@ -431,6 +514,10 @@ def send_practice_message(
             else human_offer
         )
         session.current_offer = session.agreed_price
+        (
+            session.buyer_objective_satisfaction,
+            session.seller_objective_satisfaction,
+        ) = _calculate_practice_satisfaction(session)
 
     elif decision == "REJECT":
         session.status = "rejected"
@@ -532,6 +619,8 @@ def get_negotiation_state(negotiation_id: str):
         deadlock_tolerance=session.deadlock_tolerance,
         deadlock_threshold=session.deadlock_threshold,
         deadlock_reason=session.deadlock_reason,
+        buyer_objective_satisfaction=session.buyer_objective_satisfaction,
+        seller_objective_satisfaction=session.seller_objective_satisfaction,
         history=session.history
     )
 
@@ -753,6 +842,26 @@ def start_negotiation(request: NegotiationRequest):
             detail=str(error)
         )
 
+    agreed_price = result.get("agreed_price")
+    buyer_score = None
+    seller_score = None
+
+    if agreed_price is not None:
+        buyer_score = _calculate_objective_satisfaction(
+            agreed_price,
+            buyer_target,
+            buyer_minimum,
+            buyer_maximum,
+            "buyer"
+        )
+        seller_score = _calculate_objective_satisfaction(
+            agreed_price,
+            seller_target,
+            seller_minimum,
+            seller_maximum,
+            "seller"
+        )
+
     session_id = f"ai_{uuid.uuid4().hex[:8]}"
     history = orchestrator.get_history()
     orch_state = orchestrator.get_state()
@@ -760,6 +869,8 @@ def start_negotiation(request: NegotiationRequest):
         orch_state["round"] = orchestrator.round_count
         orch_state["completed_rounds"] = orchestrator.round_count
         orch_state["max_rounds"] = request.max_rounds
+        orch_state["buyer_objective_satisfaction"] = buyer_score
+        orch_state["seller_objective_satisfaction"] = seller_score
 
     ai_session = PracticeNegotiationSession(
         negotiation_id=session_id,
@@ -782,7 +893,9 @@ def start_negotiation(request: NegotiationRequest):
         target_price=buyer_target,
         minimum_price=buyer_minimum,
         maximum_price=seller_maximum,
-        agreed_price=result.get("agreed_price"),
+        agreed_price=agreed_price,
+        buyer_objective_satisfaction=buyer_score,
+        seller_objective_satisfaction=seller_score,
         history=history,
         deadlock_reason=orch_state.get("deadlock_reason") if isinstance(orch_state, dict) else None
     )
@@ -791,7 +904,9 @@ def start_negotiation(request: NegotiationRequest):
     return {
         "negotiation_id": session_id,
         "status": result.get("status"),
-        "agreed_price": result.get("agreed_price"),
+        "agreed_price": agreed_price,
+        "buyer_objective_satisfaction": buyer_score,
+        "seller_objective_satisfaction": seller_score,
         "round": orchestrator.round_count,
         "completed_rounds": orchestrator.round_count,
         "max_rounds": request.max_rounds,
