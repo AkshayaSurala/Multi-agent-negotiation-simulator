@@ -3798,7 +3798,7 @@ function OutcomeScreen({ session }) {
     session.property_name ||
     "Selected Property";
 
-  const scenarioName = session.scenario_name || session.scenario || "Real Estate Negotiation";
+  const scenarioName = session.scenario_name || scenarios?.[Number(session.scenario)] || fallbackScenarios?.[Number(session.scenario)] || "Real Estate Negotiation";
   const agreedPrice = session.agreed_price ?? null;
   const buyerScore = getOutcomeScore(session, "buyer");
   const sellerScore = getOutcomeScore(session, "seller");
