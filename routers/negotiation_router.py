@@ -398,6 +398,8 @@ def start_practice_negotiation(
         status="active",
         round=1,
         max_rounds=max(1, request.max_rounds),
+        scenario=request.scenario,
+        scenario_name=SCENARIOS[request.scenario],
         human_role=human_role,
         ai_role=ai_role,
         ai_personality=personality_key,
@@ -442,6 +444,8 @@ def start_practice_negotiation(
         human_role=session.human_role,
         ai_role=session.ai_role,
         status=session.status,
+        scenario=session.scenario,
+        scenario_name=session.scenario_name,
         property=session.property,
         ai_message=ai_greeting
     )
