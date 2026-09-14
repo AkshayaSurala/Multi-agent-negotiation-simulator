@@ -87,6 +87,8 @@ class PracticeNegotiationStartResponse(BaseModel):
     human_role: str
     ai_role: str
     status: str
+    scenario: Optional[int] = None
+    scenario_name: Optional[str] = None
     property: Dict[str, Any]
     ai_message: str
 
