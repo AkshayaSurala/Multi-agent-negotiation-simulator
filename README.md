@@ -1,25 +1,26 @@
-# Creation of AI Driven Multi-Agent Negotiation Simulation and Platform
+# Creation of AI Driven Multi-Agent Real Estate Negotiation Simulation and Platform
 
 ## Project Overview
 
-The **Creation of AI Driven Multi-Agent Negotiation Simulation and Platform** is an AI-based real-estate negotiation system that simulates negotiations between buyer and seller agents.
+The **AI Driven Multi-Agent Negotiation Simulation and Platform** is an AI-based real-estate negotiation platform designed for both **AI-vs-AI simulation** and **human negotiation practice**.
 
-The platform uses multiple AI agents with different personalities. The **Orchestrator Agent** manages the negotiation turns, while the agents generate offers, counteroffers, and decisions based on their objectives and personalities.
+The platform uses AI agents with different personalities to simulate realistic buyer-seller negotiations. The **Orchestrator Agent** manages the negotiation turns, while the AI agents generate offers, counteroffers, and decisions based on their objectives and personalities.
 
-The system supports different real-estate scenarios and provides negotiation outcomes, round information, transcripts, and reports.
+The platform supports multiple real-estate scenarios and provides negotiation outcomes, transcripts, round information, and reports.
 
 ## Features
 
-* AI-vs-AI negotiation
-* Buyer and seller AI agents
-* Multiple agent personalities
+* AI-vs-AI negotiation simulation
+* Human negotiation practice
+* Buyer and Seller AI agents
+* Multiple negotiation personalities
 * Orchestrator Agent for turn management
-* Offer and counteroffer generation
+* Offers and counteroffers
 * Accept, Counter, and Reject decisions
 * Deadlock detection
-* Round and negotiation tracking
+* Round tracking
 * Negotiation transcript
-* Outcome and summary report
+* Negotiation outcome and summary
 * Multiple real-estate scenarios
 * Property dataset integration
 
@@ -33,48 +34,71 @@ The platform supports:
 
 ## Agent Personalities
 
-The platform supports different negotiation personalities, including:
+The AI agents can use different negotiation personalities:
 
 * Aggressive
 * Collaborative
 * Risk-Averse
 
-## Project Structure
+## Negotiation Modes
+
+### AI-vs-AI Simulation
+
+In this mode, the buyer and seller are both controlled by AI agents.
 
 ```text
-Creation of AI Driven Multi-Agent Negotiation Simulation and Platform
-│
-├── frontend/
-│   ├── package.json
-│   └── ...
-│
-├── backend/
-│   ├── agents/
-│   │   ├── __init__.py
-│   │   ├── orchestrator_agent.py
-│   │   ├── deadlock_detector.py
-│   │   ├── counteroffer_evaluator.py
-│   │   ├── practice_agent.py
-│   │   ├── practice_store.py
-│   │   └── reasoning_engine.py
-│   │
-│   ├── routers/
-│   │   ├── __init__.py
-│   │   └── negotiation_router.py
-│   │
-│   ├── main.py
-│   ├── dataset_manager.py
-│   ├── negotiation_runner.py
-│   ├── models.py
-│   ├── personalities.py
-│   ├── property_utils.py
-│   ├── report_generator.py
-│   └── ...
-│
-├── dataset_real.csv
-├── requirements.txt
-└── README.md
+Select Scenario
+      ↓
+Select Buyer Personality
+      ↓
+Select Seller Personality
+      ↓
+Start Negotiation
+      ↓
+Orchestrator manages turns
+      ↓
+Buyer and Seller exchange offers
+      ↓
+Agreement / Rejection
+      ↓
+Negotiation Report
 ```
+
+### Human Practice
+
+In Human Practice mode, the user can participate in the negotiation and practice negotiating with an AI agent.
+
+The AI responds according to its assigned personality and negotiation objectives.
+
+This mode helps users understand and practice:
+
+* Making offers
+* Making counteroffers
+* Negotiation strategies
+* Accepting or rejecting offers
+* Reaching an agreement
+
+## Main Components
+
+### Orchestrator Agent
+
+Controls the negotiation flow and manages turns between the buyer and seller.
+
+### Reasoning Engine
+
+Uses the AI/LLM service to generate negotiation responses based on personality, objectives, and conversation history.
+
+### Counteroffer Evaluator
+
+Evaluates offers and determines whether the agent should accept, reject, or make a counteroffer.
+
+### Deadlock Detector
+
+Detects situations where the negotiation is not progressing toward an agreement.
+
+### Report Generator
+
+Generates the negotiation transcript, summary, and outcome information.
 
 ## Technologies Used
 
@@ -84,71 +108,58 @@ Creation of AI Driven Multi-Agent Negotiation Simulation and Platform
 * React
 * Pandas
 * AI / LLM API
-* HTML, CSS and JavaScript
+* HTML
+* CSS
+* JavaScript
 * Git and GitHub
 
-# How to Run the Project
+# How to Run
 
 ## Prerequisites
 
-Install the following software:
+Install the following:
 
 * Python 3.x
 * Node.js
 * npm
 * Git
 
-Make sure Python and Node.js are added to PATH.
-
----
+Make sure Python and Node.js are available in Command Prompt.
 
 ## 1. Clone the Repository
 
-Open **Command Prompt** and run:
+Open Command Prompt:
 
 ```cmd
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/AkshayaSurala/Multi-agent-negotiation-simulator.git
+cd Multi-agent-negotiation-simulator
 ```
 
-Go into the project folder:
+## 2. Configure the API Key
 
-```cmd
-cd <PROJECT_FOLDER>
+Create a `.env` file in the project root and add your Gemini API key:
+
+```env
+GEMINI_API_KEY=your_api_key_here
 ```
 
----
+Do not upload your actual API key or `.env` file to GitHub.
 
-# 2. Backend Setup
+Add this to `.gitignore`:
 
-Open Command Prompt.
-
-Go to the project folder:
-
-```cmd
-cd "<PROJECT_FOLDER>"
+```text
+.env
 ```
 
-Install the Python dependencies:
+## 3. Start the Backend
+
+Open **Command Prompt 1**:
 
 ```cmd
+cd Desktop\Multi-agent-negotiation-simulator
 py -m pip install -r requirements.txt
-```
-
-Set the Python path:
-
-```cmd
 set PYTHONPATH=%CD%;%CD%\backend
-```
-
-Go to the backend folder:
-
-```cmd
 cd backend
-```
-
-Start the FastAPI server:
-
-```cmd
 py -m uvicorn main:app --reload
 ```
 
@@ -158,84 +169,44 @@ The backend will run at:
 http://127.0.0.1:8000
 ```
 
-FastAPI API documentation can be opened at:
+API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-**Keep this Command Prompt window running.**
+Keep this terminal running.
 
----
+## 4. Start the Frontend
 
-# 3. Frontend Setup
-
-Open a **new Command Prompt window**.
-
-Go to the project folder:
+Open **Command Prompt 2**:
 
 ```cmd
-cd "<PROJECT_FOLDER>"
-```
-
-Go to the frontend folder:
-
-```cmd
-cd frontend
-```
-
-Install the frontend dependencies:
-
-```cmd
+cd Desktop\Multi-agent-negotiation-simulator\frontend
 npm install
-```
-
-Start the frontend:
-
-```cmd
 npm run dev
 ```
 
 The terminal will display the frontend URL.
 
-Open that URL in a web browser.
+Open that URL in your browser.
 
----
+## 5. Use the Platform
 
-# 4. Running the Complete Project
+After both backend and frontend are running:
 
-You need **two Command Prompt windows**.
+1. Open the frontend URL.
+2. Select the required negotiation mode.
+3. Select a real-estate scenario.
+4. Select the required personalities or practice role.
+5. Start the negotiation.
+6. View the negotiation rounds, transcript, and outcome.
 
-### CMD Window 1 — Backend
+## Dataset
 
-```cmd
-cd "<PROJECT_FOLDER>"
-set PYTHONPATH=%CD%;%CD%\backend
-cd backend
-py -m uvicorn main:app --reload
-```
+The project uses the `dataset_real.csv` file for real-estate property information.
 
-### CMD Window 2 — Frontend
-
-```cmd
-cd "<PROJECT_FOLDER>\frontend"
-npm install
-npm run dev
-```
-
-After both servers are running, open the frontend URL shown by the frontend terminal.
-
----
-
-# 5. Dataset
-
-The project uses the following dataset:
-
-```text
-dataset_real.csv
-```
-
-The dataset contains real-estate property information such as:
+The dataset includes information such as:
 
 * Property Name
 * Property Title
@@ -247,131 +218,36 @@ The dataset contains real-estate property information such as:
 * Bathrooms
 * Balcony
 
-Keep the dataset in the project root:
+Keep `dataset_real.csv` in the project root.
 
-```text
-project/
-├── backend/
-├── frontend/
-├── dataset_real.csv
-└── README.md
-```
+## Testing
 
----
+Backend tests are available in the `backend` folder.
 
-# 6. Negotiation Flow
-
-The basic negotiation flow is:
-
-```text
-Select Property Scenario
-        ↓
-Select Buyer Personality
-        ↓
-Select Seller Personality
-        ↓
-Start AI-vs-AI Negotiation
-        ↓
-Orchestrator manages turns
-        ↓
-Buyer makes an offer
-        ↓
-Seller accepts / counters / rejects
-        ↓
-Buyer responds
-        ↓
-Negotiation continues
-        ↓
-Agreement or Rejection
-        ↓
-Outcome and Report
-```
-
-## 7. Main Components
-
-### Orchestrator Agent
-
-The Orchestrator Agent controls the negotiation flow and manages the turns between the buyer and seller agents.
-
-### Reasoning Engine
-
-The reasoning engine uses the configured AI/LLM service to generate negotiation responses based on the agent's personality, objectives, and conversation history.
-
-### Counteroffer Evaluator
-
-Evaluates offers and determines whether an agent should accept, reject, or make a counteroffer.
-
-### Deadlock Detector
-
-Detects situations where the negotiation is not progressing toward an agreement.
-
-### Report Generator
-
-Generates the negotiation transcript, summary, and outcome information.
-
-## 8. Testing
-
-Backend testing files are available in the `backend` folder.
-
-To run the AI-vs-AI negotiation tests:
+Run AI-vs-AI negotiation tests:
 
 ```cmd
 cd backend
 py test_ai_vs_ai_rounds.py
 ```
 
-To run the Milestone 4 report tests:
+Run report tests:
 
 ```cmd
-cd backend
 py test_milestone4_reports.py
 ```
 
-## 9. API Key Configuration
-
-The project requires the configured AI/LLM API key for AI-based negotiation.
-
-Create a `.env` file if required by the project configuration and add the required API key.
-
-Example:
-
-```text
-GEMINI_API_KEY=your_api_key_here
-```
-
-**Do not upload your actual API key or `.env` file to GitHub.**
-
-Add `.env` to `.gitignore`:
-
-```text
-.env
-```
-
-## 10. GitHub Development
-
-The project uses Git branches for development.
-
-Example:
-
-```cmd
-git status
-git add .
-git commit -m "Update project"
-git push origin <branch-name>
-```
-
-Changes can then be merged into the `main` branch using a Pull Request.
-
 ## Project Purpose
 
-The purpose of this project is to provide a simulation and training platform for understanding how multiple AI agents can interact and negotiate in a real-estate scenario.
+The platform demonstrates the use of AI agents for real-estate negotiation and provides an environment for both **simulation and practical negotiation training**.
 
-The system demonstrates:
+It demonstrates:
 
 * Multi-agent interaction
 * AI-based reasoning
-* Negotiation strategies
 * Agent orchestration
+* Negotiation strategies
 * Counteroffer handling
 * Deadlock detection
+* Human negotiation practice
 * Negotiation outcome analysis
