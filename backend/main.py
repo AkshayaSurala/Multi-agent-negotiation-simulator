@@ -62,7 +62,7 @@ app.add_middleware(
 # =====================================================
 
 try:
-    dataset = load_dataset("dataset_real.csv")
+    dataset = load_dataset("../dataset_real.csv")
 
     if dataset is None:
         dataset = []
